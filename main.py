@@ -6,10 +6,23 @@ import socket
 import re
 from bs4 import BeautifulSoup as bsp
 import Queue
+import signal
+import sys
 
+#only grab name as number as threshold
+name_threshold = 5000
+force_quit = 0
+
+def signal_handler(sig, frame):
+    global force_quit
+    print('[Ctrl+C]')
+    force_quit = 1
+    
 
 def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
     html_text=""
+
+    global name_threshold
     
     #if get done
     if html_data.status == 200:
@@ -35,20 +48,27 @@ def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
             if match is not None:
                 name = re.sub(r'[\?\_\.\-\=\#]', '/', match.group(1), 0)
 
-                zhre = re.compile(u'[\u4e00-\u9fa5]+')
+                zhre = re.compile('[\u4e00-\u9fa5]+')
 
-                name_match_zh = zhre.search(str(name)) 
+                #code conver
+                u_name = u''.join(name).encode('utf-8').strip()
+
+                name_match_zh = zhre.search(u_name) 
 
                 #filter names with chinese char 
                 if name_match_zh:
                     # print(name_match_zh.group(0))
                     pass
                 else:
+                    if(len(unique_name_set) == name_threshold):
+                        return
                     unique_name_set.add("/%s"%(name) )
     
 
 def _main_():
-    name_threshold = 5000
+    #register terminal signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+
     root_url = "https://www.chinaz.com"
 
     #timeout is important
@@ -68,7 +88,7 @@ def _main_():
     timeout_cnt = 0
 
     #parse and grab repeatly
-    while not url_queue.empty() and len(name_set) < name_threshold:
+    while force_quit != 1 and not url_queue.empty() and len(name_set) < name_threshold:
         #dequeue one url
         url = url_queue.get()
         print("process %s"%(url))
