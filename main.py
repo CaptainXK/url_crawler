@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-
 import urllib3
 import socket
 import re
@@ -9,8 +8,7 @@ import signal
 import sys
 import traceback
 import chardet
-import string
-import urllib
+
 
 #only grab name as number as threshold
 name_threshold = 200
