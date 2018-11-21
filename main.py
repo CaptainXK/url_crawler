@@ -6,15 +6,17 @@ from bs4 import BeautifulSoup as bsp
 import queue
 import signal
 import sys
-import traceback
+#import traceback
 import chardet
 
 #name set
 name_set = set()
 
 #only grab name as number as threshold
-name_threshold = 5000
+name_threshold = 10000
 force_quit = 0
+
+root_url = "http://www.chinaz.com"
 
 def signal_handler(sig, frame):
     global force_quit
@@ -48,7 +50,8 @@ def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
     #if get done
     if html_data.status == 200:
         web_coding = chardet.detect(html_data.data)['encoding']
-        print("web page data len=%d, coding=%s, current name number=%d"%(len(html_data.data), web_coding, len(unique_name_set)) )
+        #print("web page data len=%d, coding=%s, current name number=%d"%(len(html_data.data), web_coding, len(unique_name_set)) )
+        print("current name number=%d"%( len(unique_name_set) ) )
         html_text = html_data.data
     
     #parse html to find <a>url</a>
@@ -78,10 +81,10 @@ def _main_():
     #register terminal signal handler
     signal.signal(signal.SIGINT, signal_handler)
 
-    root_url = "http://www.chinaz.com"
+    global root_url
 
     #timeout is important
-    http = urllib3.PoolManager(timeout=5.0)
+    http = urllib3.PoolManager(timeout=5.0, retries=False)
     headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.103 Safari/537.36'''}
     url_queue = queue.Queue()
 
@@ -102,7 +105,7 @@ def _main_():
     while force_quit != 1 and not url_queue.empty() and len(name_set) < name_threshold:
         #dequeue one url
         url = url_queue.get()
-        print("process url:\t%s"%(url))
+        print("process url:[%s]"%(url))
 
         #involve get request with url
         try:
