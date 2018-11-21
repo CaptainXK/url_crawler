@@ -3,7 +3,7 @@ import urllib3
 import socket
 import re
 from bs4 import BeautifulSoup as bsp
-import Queue
+import queue
 import signal
 import sys
 import traceback
@@ -13,7 +13,7 @@ import chardet
 name_set = set()
 
 #only grab name as number as threshold
-name_threshold = 200
+name_threshold = 20000
 force_quit = 0
 
 def signal_handler(sig, frame):
@@ -75,12 +75,12 @@ def _main_():
     #register terminal signal handler
     signal.signal(signal.SIGINT, signal_handler)
 
-    root_url = "http://www.blueidea.com"
+    root_url = "http://www.chinaz.com"
 
     #timeout is important
     http = urllib3.PoolManager(timeout=5.0)
     headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.103 Safari/537.36'''}
-    url_queue = Queue.Queue()
+    url_queue = queue.Queue()
 
     #enqueue root url
     url_queue.put(root_url)
@@ -105,7 +105,8 @@ def _main_():
         try:
             ret = http.request('GET', url, headers)
             if ret.status == 200:
-                print("[got html data, do grab]")
+                # print("[got html data, do grab]")
+                pass
             else:
                 print("[timeout, skip it]")
                 timeout_cnt += 1
@@ -125,10 +126,10 @@ def _main_():
             url_queue.put(uni_url)
     
     print("%d name totally"%(len(name_set)) )
-    idx=1
-    for name in name_set:
-        print("%d\t: %s"%(idx, name)) 
-        idx += 1
+    # idx=1
+    # for name in name_set:
+    #     print("%d\t: %s"%(idx, name)) 
+    #     idx += 1
 
     print("record:")
     print("connect refuse=%d"%(refuse_cnt))
@@ -147,13 +148,29 @@ def de_encode_test():
 
 def parse_name_set():
     unique_names = set()
+    names_dict = dict()
+
     for name in name_set:
         components = name.split('/')
+        cur_name_len = len(components)
+
+        if str(cur_name_len) in names_dict:
+            names_dict[str(cur_name_len)] += 1
+        else:
+            names_dict[str(cur_name_len)] = 1
+
+
         for comp in components:
             unique_names.add(comp)
 
-    print("parse name set") 
+    print("[parse name set]") 
     print("%d unique words in total"%( len(unique_names) ))
+
+    #traverse the dict
+    names_rec_items = names_dict.items()
+    name_sorted_list = sorted(names_rec_items, key = lambda x:x[0] )
+    for name_len, nb in name_sorted_list:
+        print("%d:%d"%(int(name_len), int(nb)))
 
 
 #start here
