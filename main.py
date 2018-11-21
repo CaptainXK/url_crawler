@@ -13,7 +13,7 @@ import chardet
 name_set = set()
 
 #only grab name as number as threshold
-name_threshold = 20000
+name_threshold = 5000
 force_quit = 0
 
 def signal_handler(sig, frame):
@@ -22,6 +22,9 @@ def signal_handler(sig, frame):
     force_quit = 1
     
 def url_slash_process(url):
+    #remove content after '?' 
+    url = re.sub(r'\?.*', '/', url, 0)
+
     #remove all non 'a-zA-Z0-9' characters
     url = re.sub(r'[^0-9a-zA-Z/]', '/', url, 0)
 
@@ -51,7 +54,7 @@ def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
     #parse html to find <a>url</a>
     soup = bsp(html_text, "html.parser", from_encoding="utf-8")
     
-    #get all links
+    #get all links start with http or https
     links = soup.find_all('a', href=re.compile(r"^http") )
     
     for link in links:
@@ -99,7 +102,7 @@ def _main_():
     while force_quit != 1 and not url_queue.empty() and len(name_set) < name_threshold:
         #dequeue one url
         url = url_queue.get()
-        print("process %s"%(url))
+        print("process url:\t%s"%(url))
 
         #involve get request with url
         try:
@@ -167,10 +170,10 @@ def parse_name_set():
     print("%d unique words in total"%( len(unique_names) ))
 
     #traverse the dict
-    names_rec_items = names_dict.items()
-    name_sorted_list = sorted(names_rec_items, key = lambda x:x[0] )
-    for name_len, nb in name_sorted_list:
-        print("%d:%d"%(int(name_len), int(nb)))
+    names_items = names_dict.items()
+    names_sorted = sorted(names_items, key=lambda x:int(x[0]) )
+    for key,val in names_sorted:
+        print("%d:%d"%(int(key), int(val)))
 
 
 #start here
@@ -178,8 +181,9 @@ _main_()
 parse_name_set()
 # de_encode_test()
 
-# url = 'a&&/b/c/d/a///s/'
-# url_slash_process(url)
+#url = 'https://www.google.com.hk/search?newwindow=1&safe=strict&ei=yQr1W4uNKoXX8QXF9rDQCw&q=does+python+have+map+like+stl&oq=does+python+have+map+like+stl&gs_l=psy-ab.3...13681.21458..21669...0.0..1.295.3766.1j26j2......0....1..gws-wiz.......0j0i67j0i12j0i30j0i19j0i30i19j0i8i30i19j0i8i30j33i160.QEPIR4AGX58'
+#url = url_slash_process(url)
+#print(url)
 
 
 
