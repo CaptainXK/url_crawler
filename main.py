@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 
-import cookielib
 import urllib3
 import socket
 import re
@@ -8,9 +7,13 @@ from bs4 import BeautifulSoup as bsp
 import Queue
 import signal
 import sys
+import traceback
+import chardet
+import string
+import urllib
 
 #only grab name as number as threshold
-name_threshold = 5000
+name_threshold = 200
 force_quit = 0
 
 def signal_handler(sig, frame):
@@ -18,17 +21,32 @@ def signal_handler(sig, frame):
     print('[Ctrl+C]')
     force_quit = 1
     
+def url_slash_process(url):
+    #remove all non 'a-zA-Z0-9' characters
+    url = re.sub(r'[^0-9a-zA-Z/]', '/', url, 0)
+
+    #add '/' for start
+    url = '/' + url
+    
+    #remove '/' in the tail
+    url = re.sub(r'\/$', '', url, 0)
+    
+    #merge duplicated '/'
+    url = re.sub(r'\/[\/]+', '/', url, 0)
+
+    return url
 
 def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
     html_text=""
+    web_coding=""
 
     global name_threshold
     
     #if get done
     if html_data.status == 200:
-        print("len=%d, current name number=%d"%(len(html_data.data), len(unique_name_set)) )
+        web_coding = chardet.detect(html_data.data)['encoding']
+        print("web page data len=%d, coding=%s, current name number=%d"%(len(html_data.data), web_coding, len(unique_name_set)) )
         html_text = html_data.data
-        # print("header:%s"%(html_data.headers) )
     
     #parse html to find <a>url</a>
     soup = bsp(html_text, "html.parser", from_encoding="utf-8")
@@ -46,30 +64,18 @@ def _grab_one_req_(html_data, unique_name_set, unique_url_set, global_url_set):
 
             match = re.search(r'^http[s]?:\/\/(.*)', cur_link, re.I)
             if match is not None:
-                name = re.sub(r'[\?\_\.\-\=\#]', '/', match.group(1), 0)
+                name = url_slash_process(match.group(1))
 
-                zhre = re.compile('[\u4e00-\u9fa5]+')
-
-                #code conver
-                u_name = u''.join(name).encode('utf-8').strip()
-
-                name_match_zh = zhre.search(u_name) 
-
-                #filter names with chinese char 
-                if name_match_zh:
-                    # print(name_match_zh.group(0))
-                    pass
-                else:
-                    if(len(unique_name_set) == name_threshold):
-                        return
-                    unique_name_set.add("/%s"%(name) )
+                unique_name_set.add(name)
+                if(len(unique_name_set) == name_threshold):
+                    break
     
 
 def _main_():
     #register terminal signal handler
     signal.signal(signal.SIGINT, signal_handler)
 
-    root_url = "https://www.chinaz.com"
+    root_url = "http://www.blueidea.com"
 
     #timeout is important
     http = urllib3.PoolManager(timeout=5.0)
@@ -86,6 +92,8 @@ def _main_():
     #record var
     refuse_cnt = 0
     timeout_cnt = 0
+
+    global name_threshold
 
     #parse and grab repeatly
     while force_quit != 1 and not url_queue.empty() and len(name_set) < name_threshold:
@@ -132,19 +140,25 @@ def _main_():
     #     print("%d\t: %s"%(idx, url)) 
     #     idx += 1
 
+def de_encode_test():
+    urls = ['/www/51cto/com/php/search/php/q/程序', '/www/51cto/com/php/search/php/q', 'www/blueidea/com/common/searchbykey/asp/keyword/字体设计']
+
+    zhre = re.compile(u'[\u4e00-\u9fa5]+')
+
+    for url in urls:
+        u_url = url.decode('utf-8')
+        name_match = zhre.search(u_url) 
+        if name_match:
+            print(url)
+
+
+
 #start here
 _main_()
+# de_encode_test()
 
-# url = "www/baidu/com/中"
-
-# zhre = re.compile('[\u4e00-\u9fa5]+')
-
-# name_match = zhre.search(url) 
-
-# #filter names with chinese char 
-# if name_match:
-#     print(url)
-    
+# url = 'a&&/b/c/d/a///s/'
+# url_slash_process(url)
 
 
 
