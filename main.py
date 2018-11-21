@@ -9,6 +9,8 @@ import sys
 import traceback
 import chardet
 
+#name set
+name_set = set()
 
 #only grab name as number as threshold
 name_threshold = 200
@@ -84,8 +86,8 @@ def _main_():
     url_queue.put(root_url)
     
     #name and url set
-    name_set = set()
     global_url_set = set()
+    global name_set
 
     #record var
     refuse_cnt = 0
@@ -132,12 +134,6 @@ def _main_():
     print("connect refuse=%d"%(refuse_cnt))
     print("connect timeout=%d"%(timeout_cnt))
     
-    # print("%d url totally"%(len(name_set)) )
-    # idx=1
-    # for url in url_set:
-    #     print("%d\t: %s"%(idx, url)) 
-    #     idx += 1
-
 def de_encode_test():
     urls = ['/www/51cto/com/php/search/php/q/程序', '/www/51cto/com/php/search/php/q', 'www/blueidea/com/common/searchbykey/asp/keyword/字体设计']
 
@@ -149,10 +145,20 @@ def de_encode_test():
         if name_match:
             print(url)
 
+def parse_name_set():
+    unique_names = set()
+    for name in name_set:
+        components = name.split('/')
+        for comp in components:
+            unique_names.add(comp)
+
+    print("parse name set") 
+    print("%d unique words in total"%( len(unique_names) ))
 
 
 #start here
 _main_()
+parse_name_set()
 # de_encode_test()
 
 # url = 'a&&/b/c/d/a///s/'
